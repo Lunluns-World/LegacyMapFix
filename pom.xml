@@ -10,6 +10,14 @@
     <packaging>jar</packaging>
     <name>LegacyMapFix</name>
     <description>Converts locked maps stored in HuskSync's pre-3.8 item format into real maps so HuskSync 3.8+ can sync them again.</description>
+    <url>https://github.com/Lunluns-World/LegacyMapFix</url>
+
+    <licenses>
+        <license>
+            <name>GPL-2.0-or-later</name>
+            <url>https://spdx.org/licenses/GPL-2.0-or-later.html</url>
+        </license>
+    </licenses>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>

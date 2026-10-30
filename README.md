@@ -93,3 +93,10 @@ mvn package
 1. 修改 `pom.xml` 的 `<version>`
 2. 推送後建立對應的 tag，例如 `git tag v1.1.1 && git push origin v1.1.1`
 3. Actions 會編譯並建立 Release，附上 jar（tag 和 `pom.xml` 版本不一致時會失敗）
+
+## 授權
+
+Copyright (C) 2026 Lunlun's World
+
+本程式為自由軟體，依自由軟體基金會發布的 GNU 通用公共授權條款（GPL）**第 2 版或（依你的選擇）任何更新的版本**（`GPL-2.0-or-later`）散布及修改。完整條款見 [LICENSE](LICENSE)。
+
