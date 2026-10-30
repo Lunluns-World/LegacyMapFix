@@ -39,6 +39,7 @@ HuskSync 3.8+ 遇到這種物品時：
 | `/lmf inspect` | 檢查手上的地圖是否為舊格式，以及會怎麼處理 |
 | `/lmf fix` | 轉換手上的地圖 |
 | `/lmf scan [玩家]` | 轉換背包和末影箱 |
+| `/lmf frames [半徑]` | 轉換周圍展示框裡的地圖（預設 64 格，最多 256） |
 | `/lmf stats` | 統計 |
 | `/lmf reload` | 重新載入設定 |
 
@@ -50,7 +51,7 @@ HuskSync 3.8+ 遇到這種物品時：
 auto-convert:
   on-sync-complete: true   # HuskSync 同步完成後轉換背包和末影箱
   on-inventory-open: true  # 打開容器時轉換
-  on-entities-load: true   # 區塊載入時轉換展示框
+  on-entities-load: true   # 區塊載入時轉換展示框；啟動時也會掃描已載入的展示框
   on-pickup: true          # 撿起掉落物時轉換
 ```
 

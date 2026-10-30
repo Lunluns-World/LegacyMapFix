@@ -9,7 +9,7 @@ softdepend: [HuskSync]
 commands:
   legacymapfix:
     description: Inspect and convert legacy HuskSync locked maps
-    usage: /<command> [inspect|fix|scan|stats|reload]
+    usage: /<command> [inspect|fix|scan|frames|stats|reload]
     aliases: [lmf]
     permission: legacymapfix.admin
 permissions:

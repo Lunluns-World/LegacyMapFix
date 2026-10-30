@@ -3,6 +3,7 @@ package org.eu.lunworld.legacymapfix;
 import de.tr7zw.changeme.nbtapi.NBT;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -57,6 +58,20 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
             cmd.setExecutor(this);
             cmd.setTabCompleter(this);
         }
+
+        // Chunks loaded before this plugin enabled (spawn chunks, startup loads) never fire
+        // EntitiesLoadEvent for us, so sweep the frames that are already loaded.
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (!getConfig().getBoolean("auto-convert.on-entities-load", false)) return;
+            int frames = 0, converted = 0;
+            for (World world : Bukkit.getWorlds()) {
+                for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class)) {
+                    frames++;
+                    if (convertFrame(frame)) converted++;
+                }
+            }
+            getLogger().info("Startup sweep: converted " + converted + " legacy maps in " + frames + " loaded item frames.");
+        });
     }
 
     // ---------------------------------------------------------------- automatic triggers
@@ -153,12 +168,16 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
         return n;
     }
 
-    private void convertFrame(ItemFrame frame) {
+    private boolean convertFrame(ItemFrame frame) {
         ItemStack item = frame.getItem();
         String ctx = "item frame at " + frame.getWorld().getName() + " "
                 + frame.getLocation().getBlockX() + "," + frame.getLocation().getBlockY() + ","
                 + frame.getLocation().getBlockZ();
-        if (converter.convertItem(item, ctx) > 0) frame.setItem(item, false);
+        if (converter.convertItem(item, ctx) > 0) {
+            frame.setItem(item, false);
+            return true;
+        }
+        return false;
     }
 
     // ---------------------------------------------------------------- command
@@ -182,6 +201,25 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
                 int n = convertPlayer(target, "manual scan");
                 msg(sender, "&a" + target.getName() + "：轉換了 " + n + " 張地圖（背包＋末影箱）。");
             }
+            case "frames" -> {
+                if (!(sender instanceof Player p)) return msg(sender, "&c只能由玩家執行。");
+                double radius = 64;
+                if (args.length > 1) {
+                    try {
+                        radius = Math.min(256, Math.max(1, Double.parseDouble(args[1])));
+                    } catch (NumberFormatException e) {
+                        return msg(sender, "&c半徑必須是數字。");
+                    }
+                }
+                int frames = 0, converted = 0;
+                for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
+                    if (e instanceof ItemFrame frame) {
+                        frames++;
+                        if (convertFrame(frame)) converted++;
+                    }
+                }
+                msg(sender, "&a半徑 " + (int) radius + " 格內共 " + frames + " 個展示框，轉換了 " + converted + " 張地圖。");
+            }
             case "stats" -> msg(sender, "&7已索引的既有上鎖地圖：&f" + index.existingCount()
                     + "&7，本插件建立的地圖：&f" + index.createdCount()
                     + "&7，HuskSync 掛勾：&f" + huskSyncHooked);
@@ -192,6 +230,7 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
             default -> msg(sender, "&7/" + label + " inspect &8- &f檢查手上的地圖\n"
                     + "&7/" + label + " fix &8- &f轉換手上的地圖\n"
                     + "&7/" + label + " scan [玩家] &8- &f轉換背包和末影箱\n"
+                    + "&7/" + label + " frames [半徑] &8- &f轉換周圍展示框裡的地圖（預設 64，最多 256）\n"
                     + "&7/" + label + " stats &8- &f統計\n"
                     + "&7/" + label + " reload &8- &f重新載入設定");
         }
@@ -231,7 +270,7 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("inspect", "fix", "scan", "stats", "reload").stream()
+            return List.of("inspect", "fix", "scan", "frames", "stats", "reload").stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("scan")) return null; // player names
