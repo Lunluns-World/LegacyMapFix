@@ -1,0 +1,23 @@
+# LegacyMapFix
+# 把 HuskSync 3.8 以前的舊格式上鎖地圖，轉換成本分流的真正地圖，
+# 之後交給 HuskSync 3.8+ 的新機制處理跨分流同步。
+
+# HuskSync 舊版存的像素順序是轉置的（MapDataAPI 以 x 為主），
+# true = 轉置後再寫入地圖檔（依原始碼分析的預設值）。
+# 如果轉換出來的圖沿對角線翻轉，改成 false 再用備份重新轉換。
+canvas-transposed: true
+
+# 本分流已經有一模一樣的上鎖地圖時（例如原分流），直接沿用它的編號，不建立新地圖。
+# 兩種方向都會比對，比對成功時 conversions.log 會記錄實際的方向。
+reuse-existing-maps: true
+
+# 自動轉換：預設全部關閉，用 /lmf inspect、/lmf fix 測試沒問題後再打開。
+auto-convert:
+  # HuskSync 同步完成後，轉換玩家背包和末影箱（沒有 HuskSync 時改用進服後 2 秒）
+  on-sync-complete: false
+  # 打開箱子、界伏盒等容器時轉換
+  on-inventory-open: false
+  # 區塊實體載入時轉換展示框裡的地圖
+  on-entities-load: false
+  # 撿起掉落物時轉換
+  on-pickup: false
