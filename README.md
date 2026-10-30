@@ -75,10 +75,21 @@ auto-convert:
 python3 tools/find_legacy_maps.py <world_dir> [<world_dir> ...]
 ```
 
-## 建置
+## 下載與建置
+
+- 正式版：到 [Releases](https://github.com/Lunluns-World/LegacyMapFix/releases) 下載 jar
+- 開發版：每次推送到 `main` 都會由 GitHub Actions 編譯，jar 在對應執行紀錄的 Artifacts
+
+自行建置：
 
 ```bash
 mvn package
 ```
 
 輸出：`target/LegacyMapFix-<version>.jar`
+
+### 發布新版本
+
+1. 修改 `pom.xml` 的 `<version>`
+2. 推送後建立對應的 tag，例如 `git tag v1.1.1 && git push origin v1.1.1`
+3. Actions 會編譯並建立 Release，附上 jar（tag 和 `pom.xml` 版本不一致時會失敗）
