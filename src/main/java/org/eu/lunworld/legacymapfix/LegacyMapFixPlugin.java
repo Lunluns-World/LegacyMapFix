@@ -35,6 +35,11 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
     private MapIndex index;
     private LegacyMapConverter converter;
     private boolean huskSyncHooked;
+    private HuskSyncBridge huskSyncBridge;
+
+    HuskSyncBridge huskSyncBridge() {
+        return huskSyncBridge;
+    }
 
     @Override
     public void onEnable() {
@@ -52,6 +57,10 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
 
         getServer().getPluginManager().registerEvents(this, this);
         huskSyncHooked = hookHuskSync();
+        huskSyncBridge = HuskSyncBridge.tryCreate(getServer().getPluginManager().getPlugin("HuskSync"), getLogger());
+        if (huskSyncBridge != null) {
+            getLogger().info("HuskSync map bridge ready (this server: " + huskSyncBridge.serverName() + ").");
+        }
 
         var cmd = getCommand("legacymapfix");
         if (cmd != null) {
@@ -218,7 +227,8 @@ public final class LegacyMapFixPlugin extends JavaPlugin implements Listener, Ta
                         if (convertFrame(frame)) converted++;
                     }
                 }
-                msg(sender, "&a半徑 " + (int) radius + " 格內共 " + frames + " 個展示框，轉換了 " + converted + " 張地圖。");
+                msg(sender, "&a半徑 " + (int) radius + " 格內共 " + frames + " 個展示框，轉換了 " + converted + " 張舊格式地圖。"
+                        + (huskSyncBridge != null ? "\n&7空白的 HuskSync 地圖會在背景烘焙，結果記錄在 conversions.log（BAKED）。" : ""));
             }
             case "stats" -> msg(sender, "&7已索引的既有上鎖地圖：&f" + index.existingCount()
                     + "&7，本插件建立的地圖：&f" + index.createdCount()

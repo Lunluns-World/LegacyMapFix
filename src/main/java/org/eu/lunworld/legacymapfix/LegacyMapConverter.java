@@ -22,6 +22,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
@@ -47,6 +49,7 @@ public final class LegacyMapConverter {
     private final MapIndex index;
     private final File backupDir;
     private final File logFile;
+    private final Set<String> bakeAttempted = ConcurrentHashMap.newKeySet();
 
     public LegacyMapConverter(LegacyMapFixPlugin plugin, MapIndex index) {
         this.plugin = plugin;
@@ -91,7 +94,9 @@ public final class LegacyMapConverter {
     public int convertItem(ItemStack item, String context) {
         if (item == null || !item.hasItemMeta()) return 0;
         if (item.getType() == Material.FILLED_MAP) {
-            return convertMap(item, context) ? 1 : 0;
+            if (convertMap(item, context)) return 1;
+            scheduleBake(item, context);
+            return 0;
         }
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof BlockStateMeta bsm && bsm.hasBlockState() && bsm.getBlockState() instanceof Container box) {
@@ -115,6 +120,61 @@ public final class LegacyMapConverter {
             return n;
         }
         return 0;
+    }
+
+    /**
+     * For a map in HuskSync's new format whose origin is another server: HuskSync only paints it here
+     * at certain moments (inventory sync), so in item frames it often shows blank or as an icon.
+     * Write the origin's pixels into this server's (blank) bound map file so vanilla can show it
+     * by itself. Only touches the map HuskSync bound for exactly this origin, and only if it is blank.
+     */
+    private void scheduleBake(ItemStack item, String context) {
+        HuskSyncBridge bridge = plugin.huskSyncBridge();
+        if (bridge == null || !plugin.getConfig().getBoolean("bake-husksync-maps", true)) return;
+        if (!(item.getItemMeta() instanceof MapMeta meta) || !meta.hasMapView() || meta.getMapView() == null) return;
+        int localId = meta.getMapView().getId();
+
+        Object[] origin = NBT.get(item, nbt -> {
+            if (!nbt.hasTag(MAP_DATA_KEY)) return null;
+            ReadableNBT data = nbt.getCompound(MAP_DATA_KEY);
+            if (data == null || !data.hasTag(ORIGIN_KEY) || !data.hasTag("id")) return null;
+            return new Object[]{data.getString(ORIGIN_KEY), data.getInteger("id")};
+        });
+        if (origin == null) return;
+        String originServer = (String) origin[0];
+        int originId = (Integer) origin[1];
+        if (originServer.equals(bridge.serverName())) return; // origin server shows its own real map
+        if (!bakeAttempted.add(originServer + ":" + originId + ">" + localId)) return;
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                int bound = bridge.boundMapId(originServer, originId);
+                if (bound != localId) return; // HuskSync hasn't bound it to this id; leave it to HuskSync
+                byte[] nbt = bridge.mapNbt(originServer, originId);
+                if (nbt == null) return;
+                byte[] stored = CanvasDecoder.extractColors(CanvasDecoder.gunzipLenient(nbt));
+                if (CanvasDecoder.isBlank(stored)) return;
+                byte[] colors = plugin.getConfig().getBoolean("canvas-transposed", true)
+                        ? CanvasDecoder.transpose(stored) : stored;
+
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    try {
+                        MapView view = Bukkit.getMap(localId);
+                        if (view == null || !CanvasDecoder.isBlank(MapWriter.readColors(view))) return;
+                        view.setTrackingPosition(false);
+                        view.setUnlimitedTracking(false);
+                        view.setLocked(true);
+                        MapWriter.writeColors(view, colors);
+                        log(String.format("BAKED | map #%d | from %s #%d | %s", localId, originServer, originId, context));
+                    } catch (ReflectiveOperationException e) {
+                        plugin.getLogger().log(Level.WARNING, "Could not bake map #" + localId, e);
+                    }
+                });
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.WARNING, "Could not read HuskSync data for "
+                        + originServer + " #" + originId + " (" + context + ")", e);
+            }
+        });
     }
 
     private boolean convertMap(ItemStack item, String context) {

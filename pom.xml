@@ -6,7 +6,7 @@
 
     <groupId>org.eu.lunworld</groupId>
     <artifactId>LegacyMapFix</artifactId>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>LegacyMapFix</name>
     <description>Converts locked maps stored in HuskSync's pre-3.8 item format into real maps so HuskSync 3.8+ can sync them again.</description>

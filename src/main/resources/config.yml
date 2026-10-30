@@ -11,6 +11,11 @@ canvas-transposed: true
 # 兩種方向都會比對，比對成功時 conversions.log 會記錄實際的方向。
 reuse-existing-maps: true
 
+# HuskSync 新格式地圖在非原分流是「虛擬地圖」（地圖檔空白，靠 HuskSync 執行期繪製），
+# 放在展示框裡常常空白或顯示成圖標。true = 從 HuskSync 讀取原圖像素，寫進本分流空白的對應地圖檔，
+# 之後原版就能直接顯示。只會寫入 HuskSync 對應到的那個編號，而且只寫空白的地圖。
+bake-husksync-maps: true
+
 # 自動轉換：預設全部關閉，用 /lmf inspect、/lmf fix 測試沒問題後再打開。
 auto-convert:
   # HuskSync 同步完成後，轉換玩家背包和末影箱（沒有 HuskSync 時改用進服後 2 秒）

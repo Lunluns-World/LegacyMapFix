@@ -45,6 +45,16 @@ public final class MapWriter {
         }
     }
 
+    /** A copy of the map's persistent colour data (vanilla order). */
+    public static byte[] readColors(MapView view) throws ReflectiveOperationException {
+        Field worldMapField = findField(view.getClass(), "worldMap");
+        worldMapField.setAccessible(true);
+        Object savedData = worldMapField.get(view);
+        Field colorsField = findField(savedData.getClass(), "colors");
+        colorsField.setAccessible(true);
+        return ((byte[]) colorsField.get(savedData)).clone();
+    }
+
     private static Field findField(Class<?> type, String name) throws NoSuchFieldException {
         for (Class<?> c = type; c != null; c = c.getSuperclass()) {
             try {
